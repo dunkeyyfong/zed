@@ -224,6 +224,11 @@ pub struct SettingsContent {
     /// Default: true
     pub zedg_test_builds: Option<bool>,
 
+    /// ZedG fork: whether to show the VSCode-style activity bar on the left.
+    ///
+    /// Default: true
+    pub zedg_activity_bar: Option<bool>,
+
     /// This base keymap settings adjusts the default keybindings in Zed to be similar
     /// to other common code editors. By default, Zed's keymap closely follows VSCode's
     /// keymap, with minor adjustments, this corresponds to the "VSCode" setting.
@@ -413,7 +418,7 @@ fallible_options::flattened_deserialize!(SettingsContent {
     options: {
         call_hierarchy, command_palette, file_finder, git_panel, tabs, tab_bar, tab_switcher, status_bar, preview_tabs, agent,
         agent_servers, audio, auto_update, base_keymap, collaboration_panel, debugger, diagnostics,
-        git, zedg_test_builds,
+        git, zedg_test_builds, zedg_activity_bar,
         global_lsp_settings, image_viewer, markdown_preview, repl, helix_mode, hide_mouse,
         journal, log, line_indicator_format, language_models, copilot, outline_panel, project_panel,
         node, proxy, reduce_motion, server_url, credentials_url, session, telemetry, terminal,

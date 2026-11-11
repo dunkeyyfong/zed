@@ -1223,6 +1223,42 @@ impl Dock {
         }
     }
 
+    /// ZedG fork: this dock's panels as activity bar buttons, mirroring
+    /// [`PanelButtons`]: clicking an active panel closes its dock.
+    pub(crate) fn activity_bar_entries(
+        &self,
+        window: &Window,
+        cx: &App,
+    ) -> Vec<crate::activity_bar::PanelEntryButton> {
+        self.panel_entries
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| entry.panel.enabled(cx))
+            .filter_map(|(ix, entry)| {
+                let icon = entry.panel.icon(window, cx)?;
+                let tooltip = entry.panel.icon_tooltip(window, cx)?;
+                let is_active = self.is_open && self.active_panel_index == Some(ix);
+                let action = if is_active {
+                    self.toggle_action()
+                } else {
+                    entry.panel.toggle_action(window, cx)
+                };
+                Some(crate::activity_bar::PanelEntryButton {
+                    name: entry.panel.persistent_name(),
+                    icon,
+                    tooltip,
+                    action,
+                    is_active,
+                    badge: entry
+                        .panel
+                        .icon_label(window, cx)
+                        .and_then(|label| label.parse().ok()),
+                    focus_handle: self.panel_button_focus_handle(window, cx),
+                })
+            })
+            .collect()
+    }
+
     fn dispatch_context(cx: &App) -> KeyContext {
         let mut dispatch_context = KeyContext::new_with_defaults(cx.platform_info().os);
         dispatch_context.add("Dock");

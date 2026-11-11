@@ -1,4 +1,6 @@
 pub mod active_file_name;
+// ZedG fork: VSCode-style activity bar.
+pub mod activity_bar;
 pub mod dock;
 pub mod history_manager;
 pub mod invalid_item_view;
@@ -1594,6 +1596,7 @@ pub struct Workspace {
     last_active_center_pane: Option<WeakEntity<Pane>>,
     last_active_view_id: Option<proto::ViewId>,
     status_bar: Entity<StatusBar>,
+    activity_bar: Entity<activity_bar::ActivityBar>,
     pub(crate) modal_layer: Entity<ModalLayer>,
     toast_layer: Entity<ToastLayer>,
     titlebar_item: Option<AnyView>,
@@ -1975,6 +1978,12 @@ impl Workspace {
         let left_dock_buttons = cx.new(|cx| PanelButtons::new(left_dock.clone(), cx));
         let bottom_dock_buttons = cx.new(|cx| PanelButtons::new(bottom_dock.clone(), cx));
         let right_dock_buttons = cx.new(|cx| PanelButtons::new(right_dock.clone(), cx));
+        let activity_bar = cx.new(|cx| {
+            activity_bar::ActivityBar::new(
+                [left_dock.clone(), right_dock.clone(), bottom_dock.clone()],
+                cx,
+            )
+        });
         let multi_workspace = window
             .root::<MultiWorkspace>()
             .flatten()
@@ -2100,6 +2109,7 @@ impl Workspace {
             last_active_center_pane: Some(center_pane.downgrade()),
             last_active_view_id: None,
             status_bar,
+            activity_bar,
             modal_layer,
             toast_layer,
             titlebar_item: None,
@@ -9898,6 +9908,19 @@ impl Render for Workspace {
                     .flex()
                     .flex_col()
                     .child(
+                        // ZedG fork: the activity bar sits left of the workspace,
+                        // outside it, so dock resize math is unchanged.
+                        div()
+                            .flex()
+                            .flex_row()
+                            .flex_1()
+                            .w_full()
+                            .min_h_0()
+                            .overflow_hidden()
+                            .when(activity_bar::ActivityBar::is_visible(cx), |this| {
+                                this.child(self.activity_bar.clone())
+                            })
+                            .child(
                         div()
                             .id("workspace")
                             .bg(colors.background)
@@ -10282,6 +10305,7 @@ impl Render for Workspace {
                                 })
                             }))
                             .children(self.render_notifications(window, cx)),
+                            ),
                     )
                     .when(self.status_bar_visible(cx), |parent| {
                         parent.child(self.status_bar.clone())

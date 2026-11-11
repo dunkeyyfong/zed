@@ -1734,6 +1734,9 @@
   // ZedG fork: also auto-update to quick test builds (GitHub pre-releases),
   // not only full release builds.
   "zedg_test_builds": true,
+  // ZedG fork: show the VSCode-style activity bar (Explorer, Search,
+  // Source Control, Git Graph, Debug, Extensions, ...) on the far left.
+  "zedg_activity_bar": true,
   // How to render LSP `textDocument/documentColor` colors in the editor.
   //
   // Possible values:

@@ -186,6 +186,7 @@ impl VsCodeSettings {
             audio: None,
             auto_update: None,
             zedg_test_builds: None,
+            zedg_activity_bar: None,
             base_keymap: Some(BaseKeymapContent::VSCode),
             calls: None,
             collaboration_panel: None,
