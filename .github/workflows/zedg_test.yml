@@ -1,0 +1,26 @@
+# ZedG fork: quick test build on every push to the zedg branch.
+# Published as a pre-release; installed ZedG auto-updates to it while
+# "zedg_test_builds" is enabled (the default).
+name: ZedG Test Build
+
+on:
+  push:
+    branches: [zedg]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+
+concurrency:
+  group: zedg-test-build
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    uses: ./.github/workflows/zedg_bundle.yml
+    with:
+      profile: ci-test
+      prerelease: true

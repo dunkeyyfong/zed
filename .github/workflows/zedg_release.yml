@@ -1,0 +1,20 @@
+# ZedG fork: full release build (same optimizations as upstream Zed),
+# started by hand from the Actions tab.
+name: ZedG Release Build
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: zedg-release-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    uses: ./.github/workflows/zedg_bundle.yml
+    with:
+      profile: release
+      prerelease: false

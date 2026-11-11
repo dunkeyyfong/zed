@@ -1731,6 +1731,9 @@
   // Automatically update Zed. This setting may be ignored on Linux if
   // installed through a package manager.
   "auto_update": true,
+  // ZedG fork: also auto-update to quick test builds (GitHub pre-releases),
+  // not only full release builds.
+  "zedg_test_builds": true,
   // How to render LSP `textDocument/documentColor` colors in the editor.
   //
   // Possible values:

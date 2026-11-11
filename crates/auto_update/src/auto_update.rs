@@ -32,6 +32,8 @@ use std::{
 use util::command::new_command;
 use workspace::Workspace;
 
+mod zedg;
+
 const SHOULD_SHOW_UPDATE_NOTIFICATION_KEY: &str = "auto-updater-should-show-updated-notification";
 
 #[derive(Debug)]
@@ -345,6 +347,9 @@ pub fn check(_: &Check, window: &mut Window, cx: &mut App) {
 pub fn release_notes_url(cx: &mut App) -> Option<String> {
     let release_channel = ReleaseChannel::try_global(cx)?;
     let url = match release_channel {
+        ReleaseChannel::Stable | ReleaseChannel::Preview if cfg!(target_os = "windows") => {
+            zedg::release_notes_url()
+        }
         ReleaseChannel::Stable | ReleaseChannel::Preview => {
             let auto_updater = AutoUpdater::get(cx)?;
             let auto_updater = auto_updater.read(cx);
@@ -491,6 +496,7 @@ impl AutoUpdater {
         let poll_interval =
             ReleaseChannel::try_global(cx).map_or(POLL_INTERVAL, |channel| match channel {
                 ReleaseChannel::Nightly => NIGHTLY_POLL_INTERVAL,
+                _ if cfg!(target_os = "windows") => zedg::POLL_INTERVAL,
                 _ => POLL_INTERVAL,
             });
 
@@ -756,19 +762,42 @@ impl AutoUpdater {
             cx.notify();
         });
 
-        let fetched_release_data =
-            Self::get_release_asset(&this, release_channel, None, "zed", OS, ARCH, cx).await?;
-        let fetched_version = fetched_release_data.clone().version;
-        let app_commit_sha = Ok(cx.update(|cx| AppCommitSha::try_global(cx).map(|sha| sha.full())));
-        let newer_version = Self::check_if_fetched_version_is_newer(
-            release_channel,
-            app_commit_sha,
-            installed_version,
-            fetched_version,
-            previous_status.clone(),
-        )?;
+        // ZedG fork: on Windows, update only from the fork's own GitHub
+        // Releases so an upstream Zed build never replaces the fork.
+        let (fetched_release_data, newer_version, expected_sha256) =
+            if cfg!(target_os = "windows") {
+                let test_builds = cx.update(|cx| zedg::TestBuildsSetting::get_global(cx).0);
+                match zedg::check(
+                    client.clone(),
+                    &installed_version,
+                    &previous_status,
+                    test_builds,
+                )
+                .await?
+                {
+                    Some(update) => (Some(update.asset), Some(update.version), update.sha256),
+                    None => (None, None, None),
+                }
+            } else {
+                let fetched_release_data =
+                    Self::get_release_asset(&this, release_channel, None, "zed", OS, ARCH, cx)
+                        .await?;
+                let fetched_version = fetched_release_data.clone().version;
+                let app_commit_sha =
+                    Ok(cx.update(|cx| AppCommitSha::try_global(cx).map(|sha| sha.full())));
+                let newer_version = Self::check_if_fetched_version_is_newer(
+                    release_channel,
+                    app_commit_sha,
+                    installed_version,
+                    fetched_version,
+                    previous_status.clone(),
+                )?;
+                (Some(fetched_release_data), newer_version, None)
+            };
 
-        let Some(newer_version) = newer_version else {
+        let (Some(fetched_release_data), Some(newer_version)) =
+            (fetched_release_data, newer_version)
+        else {
             this.update(cx, |this, cx| {
                 this.status = match previous_status {
                     AutoUpdateStatus::Updated { .. } => previous_status,
@@ -817,6 +846,10 @@ impl AutoUpdater {
         )
         .await
         .with_context(|| format!("Failed to download update to {}", target_path.display()))?;
+
+        if let Some(expected_sha256) = expected_sha256 {
+            zedg::verify_sha256(target_path.clone(), expected_sha256).await?;
+        }
 
         this.update(cx, |this, cx| {
             this.status = AutoUpdateStatus::Installing {

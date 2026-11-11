@@ -7,6 +7,9 @@ mod zed;
 
 // Ensure the binary name stays in sync with APP_NAME so that the paths used
 // at runtime (data dir, config dir, etc.) match what the binary is called.
+// ZedG fork: Windows keeps `Zed.exe` (the installer and updater expect it)
+// while using its own `ZedG` data dirs, so the check only applies elsewhere.
+#[cfg(not(target_os = "windows"))]
 const _: () = assert!(
     paths::APP_NAME_LOWERCASE
         .as_bytes()

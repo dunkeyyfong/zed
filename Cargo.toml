@@ -1158,6 +1158,14 @@ debug = "full"
 lto = false
 codegen-units = 16
 
+# ZedG fork: quick CI test builds. Optimized like release, but without LTO or
+# debug info so the 4-core GitHub runner finishes faster and uses less disk.
+[profile.ci-test]
+inherits = "release"
+debug = false
+lto = false
+codegen-units = 16
+
 [workspace.lints.rust]
 unexpected_cfgs = { level = "allow" }
 

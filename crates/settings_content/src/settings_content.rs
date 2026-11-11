@@ -218,6 +218,12 @@ pub struct SettingsContent {
     /// Default: true
     pub auto_update: Option<bool>,
 
+    /// ZedG fork: whether auto-update also installs the quick test builds
+    /// (GitHub pre-releases), not only full release builds.
+    ///
+    /// Default: true
+    pub zedg_test_builds: Option<bool>,
+
     /// This base keymap settings adjusts the default keybindings in Zed to be similar
     /// to other common code editors. By default, Zed's keymap closely follows VSCode's
     /// keymap, with minor adjustments, this corresponds to the "VSCode" setting.
