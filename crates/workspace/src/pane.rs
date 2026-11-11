@@ -4190,6 +4190,41 @@ impl Pane {
                 let fs = Arc::clone(workspace.project().read(cx).fs());
                 let project = workspace.project().clone();
                 cx.spawn_in(window, async move |workspace, cx| {
+                    // ZedG fork: like VSCode, dropped folders open as their own
+                    // workspace (a new window, or this one if it's empty) instead
+                    // of being added to this project and then failing to open
+                    // as a file.
+                    let mut paths = paths;
+                    if !needs_wsl_translation {
+                        let mut dirs = Vec::new();
+                        let mut files = Vec::new();
+                        for path in paths {
+                            if fs.is_dir(&path).await {
+                                dirs.push(path);
+                            } else {
+                                files.push(path);
+                            }
+                        }
+                        if !dirs.is_empty() {
+                            workspace
+                                .update_in(cx, |workspace, window, cx| {
+                                    workspace
+                                        .open_workspace_for_paths(
+                                            crate::OpenMode::NewWindow,
+                                            dirs,
+                                            window,
+                                            cx,
+                                        )
+                                        .detach_and_log_err(cx);
+                                })
+                                .ok();
+                        }
+                        if files.is_empty() {
+                            return;
+                        }
+                        paths = files;
+                    }
+
                     // `fs` is the host's file system even for remote projects, so probe the paths as they were dropped, before translating them to the remote's path style.
                     let mut is_file_checks = FuturesUnordered::new();
                     for path in &paths {
